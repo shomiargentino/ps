@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <title>Copy Text Page</title>
+</head>
+<body>
+
+    <!-- Dugme za kopiranje -->
+    <button id="copyBtn">📋 Kopiraj ceo tekst</button>
+
+    <hr>
+
+    <!-- Blok sa tekstom -->
+    <pre id="textBlock">
+OVO JE PRIMER TEKSTA.
+
+Ovaj tekst:
+- ima više redova
+- zadržava razmake
+- zadržava formatiranje
+
+    Uvučeni red ostaje uvučen.
+
+Možeš ovde ubaciti:
+    - SQL skripte
+    - logove
+    - zadatke
+    - eseje
+    - bilo kakav veliki tekst
+
+Sve će biti kopirano TAČNO ovako kako vidiš.
+    </pre>
+
+    <!-- JavaScript -->
+    <script>
+        document.getElementById("copyBtn").addEventListener("click", function () {
+            const text = document.getElementById("textBlock").innerText;
+
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert("Tekst je kopiran u clipboard!");
+                })
+                .catch(err => {
+                    alert("Greška pri kopiranju.");
+                    console.error(err);
+                });
+        });
+    </script>
+
+</body>
+</html>
