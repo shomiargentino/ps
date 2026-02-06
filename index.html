@@ -13,140 +13,533 @@
 
     <!-- Blok sa tekstom -->
     <pre id="textBlock">
-//ClientForm
-public class ClientForm extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ClientForm.class.getName());
-    boolean ulogovan = false;
+package client;
 
-    /**
-     * Creates new form ClientForm
-     * @throws java.lang.InterruptedException
-     */
-    public ClientForm() throws InterruptedException {
-        initComponents();
-        
-        new Thread(() -> {
-            try {
-                Thread.sleep(10_000);
-                if(ulogovan == false)
-                {
-                    this.dispose();
-                }
-            } catch (InterruptedException ex) {
-                System.getLogger(ClientForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-            }
-        }).start();
-    }
-
-private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {                                         
-        // TODO add your handling code here:
-        Operation operation;
-        String argument;
-        
-        if(txtRequest.getText().equals("LOGOUT") || txtRequest.getText().equals("DATE"))
-        {
-            operation = Operation.valueOf(txtRequest.getText());
-            argument = " ";
-        }
-        else
-        {
-            String[] zahtev = txtRequest.getText().split(" ",2);                        
-            operation = Operation.valueOf(zahtev[0]);
-            argument = (String)zahtev[1];         
-        }
-                
-
-        
-        try {
-            String odgovor = (String)Controller.getInstance().obradi(operation, argument);
-            txtResponse.setText(odgovor);
-            
-            if(operation == LOGIN && odgovor.equals("Uspesan login"))
-            {
-                ulogovan = true;
-            }
-        } catch (IOException ex) {
-            System.getLogger(ClientForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        }
-    }                                        
-
-//Client Controller
-package controller;
-
-import common.Korisnik;
-import communication.Operation;
 import communication.Receiver;
-import communication.Request;
-import communication.Response;
 import communication.Sender;
+import form.ClientForm;
 import java.io.IOException;
 import java.net.Socket;
 
-public class Controller {
+public class Client {
+
     private Socket socket;
-    private static Controller instance;
     private Sender sender;
     private Receiver receiver;
-    
-    private Controller() throws IOException {
-            socket = new Socket("localhost",9000);
-            sender = new Sender(socket);
-            receiver = new Receiver(socket);
 
+    public Client() throws IOException {
+        this.socket = new Socket("localhost",9000);
+        sender = new Sender(socket);
+        receiver = new Receiver(socket);
     }
     
-    public static Controller getInstance() throws IOException{
-        if(instance==null)
+    
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) {
+        // TODO code application logic here
+        ClientForm forma = new ClientForm();
+        forma.setVisible(true);
+        
+    }
+    
+    public Sender getSender(){
+        return sender;
+    }
+    
+    public Receiver getReceiver(){
+        return receiver;
+    }
+}
+
+package controller;
+
+import client.Client;
+import communication.Operation;
+import communication.Request;
+import communication.Response;
+import java.io.IOException;
+
+/**
+ *
+ * @author vasil
+ */
+public class Controller {
+    private static Controller instance;
+    private Client client;
+    private Controller() throws IOException {
+        this.client = new Client();
+    }
+    
+    public static synchronized Controller getInstance() throws IOException{
+        if(instance == null)
         {
             instance = new Controller();
         }
         return instance;
     }
     
-    public Object obradi(Operation operation, String argument)
+    public String obradi(Operation operation, String argument) throws Exception
     {
-        try {
-            Request request = new Request(operation, argument);
-            sender.send(request);
-            Response response = (Response)receiver.receive();
-            
-            if(response.getException() == null)
-                return (String)response.getResult();
-            else
-                throw response.getException();
-        } catch (Exception ex) {
-            System.getLogger(Controller.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        Request request = new Request();
+        request.setArgument(argument);
+        request.setOperation(operation);
+        client.getSender().send(request);
+        Response response = (Response) client.getReceiver().receive();
+        
+        if(response.getException() == null)
+        {
+            return (String) response.getResult();
         }
-        return null;
+        else
+        {
+            throw response.getException();
+        }
     }
 }
 
-//ClientHandler
-package threads;
 
-import common.Korisnik;
-import communication.*;
-import java.net.Socket;
-import logic.Controller;
+public class ClientForm extends javax.swing.JFrame {
+    
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ClientForm.class.getName());
+    private boolean ulogovan = false;
+    /**
+     * Creates new form ClientForm
+     */
+    public ClientForm() {
+        initComponents();
+        
+        Timer timer = new Timer(10000,(e) -> {
+           if(txtResponse.getText().equals("Uspesan login."))
+               ((Timer)e.getSource()).stop();
+           else
+               dispose();
+        });
+        timer.start();
+    }
+
+    
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    private void initComponents() {
+
+        txtRequest = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        btnSend = new javax.swing.JButton();
+        txtResponse = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        txtRequest.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+        jLabel1.setText("Poruka:");
+
+        btnSend.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+        btnSend.setText("Posalji");
+        btnSend.addActionListener(this::btnSendActionPerformed);
+
+        txtResponse.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+
+        jButton1.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
+        jButton1.setText("Cancel");
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(211, 211, 211)
+                        .addComponent(btnSend, javax.swing.GroupLayout.PREFERRED_SIZE, 483, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(415, 415, 415)
+                        .addComponent(jLabel1)))
+                .addContainerGap(214, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jButton1)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(txtResponse, javax.swing.GroupLayout.DEFAULT_SIZE, 681, Short.MAX_VALUE)
+                        .addComponent(txtRequest)))
+                .addGap(112, 112, 112))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(58, 58, 58)
+                .addComponent(jLabel1)
+                .addGap(41, 41, 41)
+                .addComponent(txtRequest, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(52, 52, 52)
+                .addComponent(btnSend)
+                .addGap(86, 86, 86)
+                .addComponent(txtResponse, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 70, Short.MAX_VALUE)
+                .addComponent(jButton1)
+                .addGap(30, 30, 30))
+        );
+
+        pack();
+    }// </editor-fold>                        
+
+    private void btnSendActionPerformed(java.awt.event.ActionEvent evt) {                                        
+        // TODO add your handling code here:
+        String odgovor = "";
+        String argument ="";
+        Operation operation;
+        if(txtRequest.getText().equals("LOGOUT") || txtRequest.getText().equals("DATE"))
+        {
+                argument = "";
+                operation = Operation.valueOf(txtRequest.getText());
+        }
+        else
+        {     
+                String[] zahtevi = txtRequest.getText().split(" ",2);
+                operation=Operation.valueOf(zahtevi[0]);
+                argument = zahtevi[1];
+                txtResponse.setText(odgovor);  
+        }
+        System.out.println(operation+argument);
+        try {
+            odgovor = Controller.getInstance().obradi(operation,argument);
+            txtResponse.setText(odgovor);
+        } catch (Exception ex) {
+            System.getLogger(ClientForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        }
+        
+    }
+
+public class Korisnik {
+    String ime;
+    boolean status = false;
+
+    public Korisnik() {
+    }
+
+    public Korisnik(String ime) {
+        this.ime = ime;
+    }
+
+    public String getIme() {
+        return ime;
+    }
+
+    public void setIme(String ime) {
+        this.ime = ime;
+    }
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
+
+    @Override
+    public String toString() {
+        return "Korisnik{" + "ime=" + ime + ", status=" + status + '}';
+    }
+    
+    
+}
+
+public enum Operation {
+    LOGIN,
+    ADD,
+    MINMAX,
+    DATE,
+    LOGOUT
+}
+
+public class Receiver implements Serializable{
+    private Socket socket;
+    private ObjectInputStream in;
+
+    public Receiver(Socket socket) throws IOException {
+        this.socket = socket;
+        in = new ObjectInputStream(socket.getInputStream());
+    }
+    
+    public Object receive() throws Exception{
+        try {
+            return in.readObject();
+        } catch (IOException | ClassNotFoundException ex) {
+            throw new Exception("Greska u receive");
+        }
+    }
+}
+
+public class Request implements Serializable{
+    Operation operation;
+    Object argument;
+
+    public Request(Operation operation, Object argument) {
+        this.operation = operation;
+        this.argument = argument;
+    }
+
+    public Request() {
+        
+    }
+
+    public Operation getOperation() {
+        return operation;
+    }
+
+    public void setOperation(Operation operation) {
+        this.operation = operation;
+    }
+
+    public Object getArgument() {
+        return argument;
+    }
+
+    public void setArgument(Object argument) {
+        this.argument = argument;
+    }
+    
+    
+}
+
+public class Response implements Serializable{
+    Object result;
+    Exception exception;
+
+    public Response(Object response, Exception exception) {
+        this.result = response;
+        this.exception = exception;
+    }
+
+    public Response() {
+        
+    }
+
+    public Object getResult() {
+        return result;
+    }
+
+    public void setResult(Object result) {
+        this.result = result;
+    }
+
+    public Exception getException() {
+        return exception;
+    }
+
+    public void setException(Exception exception) {
+        this.exception = exception;
+    }
+    
+    
+}
+
+public class Sender implements Serializable{
+    private Socket socket;
+    private ObjectOutputStream out;
+    
+    public Sender(Socket socket) throws IOException {
+        this.socket = socket;
+        out = new ObjectOutputStream(socket.getOutputStream());
+    }
+
+   public void send(Object object){
+        try {
+            out.writeObject(object);
+            out.flush();
+
+        } catch (IOException ex) {
+            System.getLogger(Sender.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        }
+       
+   }
+}
+
+public class ServerForm extends javax.swing.JFrame {
+    
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ServerForm.class.getName());
+
+    /**
+     * Creates new form ServerForm
+     */
+    ServerThread serverThread;
+    public ServerForm() {
+        initComponents();
+
+        
+        Timer timer = new Timer(1000, (e) -> {
+            popuniTabelu();        
+        });
+        
+        timer.setRepeats(true);
+        timer.start();
+    }
+
+private void btnStartServerActionPerformed(java.awt.event.ActionEvent evt) {                                               
+        try {
+            // TODO add your handling code here:
+            ;
+            if(serverThread == null || !serverThread.isAlive())
+            {
+                serverThread = new ServerThread();
+                serverThread.start();
+                btnStartServer.setEnabled(false);
+                btnUgasiServer.setEnabled(true);
+            }
+            } catch (IOException ex) {
+            System.getLogger(ServerForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        }
+    }                                              
+
+    private void btnUgasiServerActionPerformed(java.awt.event.ActionEvent evt) {                                               
+        // TODO add your handling code here:
+        if(serverThread.getServerSocket() != null && serverThread.getServerSocket().isBound())
+        {
+            try {
+                serverThread.getServerSocket().close();
+                btnStartServer.setEnabled(true);
+                btnUgasiServer.setEnabled(false);
+            } catch (IOException ex) {
+                System.getLogger(ServerForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            }
+        }
+    }                                              
+
+
+public class Controller {
+    private static Controller instance;
+    private List<Korisnik> listaDozvoljenihKorisnika;
+    
+    private Controller(){
+            listaDozvoljenihKorisnika = new ArrayList<>();
+            listaDozvoljenihKorisnika.add(new Korisnik("aki"));
+            listaDozvoljenihKorisnika.add(new Korisnik("misa"));
+            listaDozvoljenihKorisnika.add(new Korisnik("djole"));
+            listaDozvoljenihKorisnika.add(new Korisnik("soki"));
+            listaDozvoljenihKorisnika.add(new Korisnik("damir"));  
+    }
+    
+    public static synchronized Controller getInstance(){
+        if(instance == null)
+        {
+            instance = new Controller();
+        }
+        return instance;
+    }
+
+    public String login(String username) {
+        boolean postoji=false;
+        
+        for(Korisnik k: listaDozvoljenihKorisnika)
+        {
+            if(k.getIme().equals(username))
+            {
+                postoji = true;
+                if(k.isStatus() == false)
+                {
+                    k.setStatus(true);
+                    return "Uspesan login.";
+                    
+                }
+                return "Korisnik je vec ulogovan.";
+                
+            }
+        }
+        
+        return "Ne postoji korisnik";
+    }
+
+    public String add(String argument) {
+        String[] txtBrojevi = argument.split(" ",2);
+        int broj1 = Integer.parseInt(txtBrojevi[0]);
+        int broj2 = Integer.parseInt(txtBrojevi[1]);
+        int rezultat = broj1+ broj2;
+        return "ADD:"+rezultat;
+    }
+
+    public String minmax(String argument) {
+        String[] txtBrojevi = argument.split(" ");
+        int maks = Integer.parseInt(txtBrojevi[0]);
+        int min = Integer.parseInt(txtBrojevi[0]);
+        int broj;
+        for(int i=0; i<txtBrojevi.length; ++i)
+        {
+            broj = Integer.parseInt(txtBrojevi[i]);
+            if(broj>maks)
+            {
+                maks = broj;
+            }
+            if(broj<min)
+            {
+                min = broj;
+            }
+        }
+        
+        return "MIN: "+min+" MAX: "+maks;
+    }
+
+    public String date(String argument) {
+        return LocalDateTime.now().toString();
+    }
+
+    public String logout(String username) {
+        System.out.println("kurac");
+        
+        for(Korisnik k: listaDozvoljenihKorisnika)
+        {
+            if(k.getIme().equals(username))
+            {
+                if(k.isStatus() == true)
+                {
+                    k.setStatus(false);
+                    return "Uspesan logout.";
+                    
+                }
+                return "Korisnik je vec izlogovan.";
+                
+            }
+        }
+        
+        return "Ne postoji korisnik";
+    }
+
+    public List<Korisnik> getListaDozvoljenihKorisnika() {
+        return listaDozvoljenihKorisnika;
+    }
+    
+    
+}
 
 public class ClientHandler extends Thread{
-    private Socket socket;
+
+    private Socket clientSocket;
     private Receiver receiver;
     private Sender sender;
     private Korisnik user;
-    
-    public ClientHandler(Socket socket) {
-        this.socket = socket;
-        receiver = new Receiver(socket);
-        sender = new Sender(socket);
-        
+    public ClientHandler(Socket clientSocket) throws IOException {
+        this.clientSocket = clientSocket;
+        receiver = new Receiver(clientSocket);
+        sender = new Sender(clientSocket);
+        this.user = new Korisnik();
+    }
+
+    public Socket getSocket() {
+        return clientSocket;
     }
 
     @Override
     public void run() {
-           
-        while(!socket.isClosed())
+        while(!clientSocket.isClosed())
         {
             try {
                 Request request = (Request) receiver.receive();
@@ -158,195 +551,50 @@ public class ClientHandler extends Thread{
         }
     }
 
-    private Response handleRequest(Request request) {
+    private Response handleRequest(Request request) throws Exception {
         Response response = new Response();
         String odgovor;
         String argument;
-        try{
-            switch(request.getOperation())
-            {
-                case LOGIN:
-                    String username = (String) request.getArgument();
-                    odgovor = Controller.getInstance().login(username);
-                    this.user = new Korisnik(username);
-                    response.setResult(odgovor);
-                    break;
-                case ADD:
-                    argument = (String) request.getArgument();
-                    odgovor = Controller.getInstance().saberi(argument);
-                    response.setResult(odgovor);
-                    break;
-                case MINMAX:
-                    argument = (String) request.getArgument();
-                    odgovor = Controller.getInstance().minmax(argument);
-                    response.setResult(odgovor);
-                    break;
-                case DATE:
-                    odgovor = Controller.getInstance().date();
-                    response.setResult(odgovor);
-                    break;
-                case LOGOUT:
-                    if (this.user == null) {
-                        throw new Exception("Korisnik nije ulogovan");
-                    }
-                    odgovor = Controller.getInstance().logout(this.user.getKorisnickoIme());
-                    this.user = null;
-                    response.setResult(odgovor);
-                    break;
-                default:
-                    throw new AssertionError();
-            }
-        }
-        catch(Exception ex){
-            response.setException(ex);
+        switch(request.getOperation())
+        {
+            case LOGIN:
+                String username = (String) request.getArgument();
+                odgovor = Controller.getInstance().login(username);
+                this.user.setIme(username);
+                this.user.setStatus(true);
+                response.setResult(odgovor);
+                break;
+            case ADD:
+                argument = (String) request.getArgument();
+                odgovor = Controller.getInstance().add(argument);
+                response.setResult(odgovor);
+                break;
+            case MINMAX:
+                argument = (String) request.getArgument();
+                odgovor = Controller.getInstance().minmax(argument);
+                response.setResult(odgovor);
+                break;
+            case DATE:
+                argument = (String) request.getArgument();
+                odgovor = Controller.getInstance().date(argument);
+                response.setResult(odgovor);
+                break;
+            case LOGOUT:
+                argument = (String) request.getArgument();
+                odgovor = Controller.getInstance().logout(this.user.getIme());
+                this.user.setStatus(false);
+                response.setResult(odgovor);
+                break;
+            default:
+                throw new Exception("Losa operacija uneta");
         }
         
         return response;
     }
     
-    public Socket getSocket(){
-        return socket;
-    }
-
-    public Korisnik getUser() {
-        return user;
-    }
     
     
 }
-
-//Server Controller
-package logic;
-
-import common.Korisnik;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-public class Controller {
-        private List<Korisnik> listaDozvoljenihKorisnika;
-        private static Controller instance;
-        
-        private Controller(){
-            listaDozvoljenihKorisnika = new ArrayList<>();
-            listaDozvoljenihKorisnika.add(new Korisnik("aki"));
-            listaDozvoljenihKorisnika.add(new Korisnik("misa"));
-            listaDozvoljenihKorisnika.add(new Korisnik("djole"));
-            listaDozvoljenihKorisnika.add(new Korisnik("soki"));
-            listaDozvoljenihKorisnika.add(new Korisnik("damir"));
-        }
-        
-        public static synchronized Controller getInstance()
-        {
-            if(instance == null)
-            {
-                instance = new Controller();
-            }
-            return instance;
-        }
-
-    public String login(String username) throws Exception {
-        
-        String rezultat = "Neuspesan login";
-        boolean postoji = false;
-        for(Korisnik user: listaDozvoljenihKorisnika)
-        {
-            if(user.getKorisnickoIme().equals(username))
-            {
-                postoji = true;
-                if(user.getStatus() == true)
-                    throw new Exception("Korisnik je vec ulogovan");
-                else
-                {
-                    user.setStatus(true);
-                    rezultat = "Uspesan login";                
-                }
-                break;
-            }
-        }
-        
-        if(!postoji)
-            {
-                throw new Exception("Username ne postoji u sistemu!");
-            }
-        return rezultat;
-    }
-        public String logout(String username) throws Exception {
-        
-        String rezultat = "Neuspesan logout";
-        boolean postoji = false;
-        for(Korisnik user: listaDozvoljenihKorisnika)
-        {
-            if(user.getKorisnickoIme().equals(username))
-            {
-                postoji = true;
-                if(user.getStatus() == false)
-                    throw new Exception("Korisnik je vec izlogovan");
-                else
-                {
-                    user.setStatus(false);
-                    rezultat = "Uspesan logout";                
-                }
-                break;
-            }
-        }
-        
-        if(!postoji)
-            {
-                throw new Exception("Username ne postoji u sistemu!");
-            }
-        return rezultat;
-    }
-    public String saberi(String argument) {
-        String[] txtBrojevi = argument.split(" ");
-        
-        int broj1 = Integer.parseInt(txtBrojevi[0]);
-        int broj2 = Integer.parseInt(txtBrojevi[1]);
-        int zbir = broj1 + broj2;
-        
-        return String.valueOf(zbir);
-    }
-
-    public String minmax(String argument) {
-        int min = Integer.MAX_VALUE;
-        int max = Integer.MIN_VALUE;
-        
-        String[] txtBrojevi = argument.split(" ");
-        
-        for(String txtBroj : txtBrojevi)
-        {
-            int broj = Integer.parseInt(txtBroj);
-            
-            if(broj>max)
-                max = broj;
-            if(broj<min)
-                min=broj;
-        }
-        
-        return "MIN"+String.valueOf(min)+"MAX"+String.valueOf(max);
-    }
-
-    public String date() {
-        return "CURRENT DATE: "+LocalDate.now();
-    }
-
-    public List<Korisnik> getListaDozvoljenihKorisnika() {
-        return listaDozvoljenihKorisnika;
-    }
-    
-    
-}
-
-//Server Thread
-package threads;
-
-import common.Korisnik;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ServerThread extends Thread{
     private ServerSocket serverSocket;
@@ -356,32 +604,30 @@ public class ServerThread extends Thread{
         serverSocket = new ServerSocket(9000);
         clients = new ArrayList<>();
     }
-    
+
     @Override
     public void run() {
-            while(!serverSocket.isClosed())
-            {
-                try {
-                    System.out.println("Cekam clienta");
-                    Socket clientSocket = serverSocket.accept();
-                    
-                    ClientHandler thread = new ClientHandler(clientSocket);
-                    thread.start();
-                    clients.add(thread);
-                    System.out.println("Klijent povezan");
-                    
-                } catch (IOException ex) {
-                    System.getLogger(ServerThread.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-                }
+        
+        while(!serverSocket.isClosed())
+        {
+            try {
+                System.out.println("Cekam klijente...");
+                Socket clientSocket = serverSocket.accept();
+                
+                ClientHandler thread = new ClientHandler(clientSocket);
+                thread.start();
+                System.out.println("Klijent povezan.");
+                clients.add(thread);
+                
+            } catch (IOException ex) {
+                System.getLogger(ServerThread.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
             }
-            
-            StopAllThreads();
-
+        }
+        stopAllThreads();
     }
-    
-    private void StopAllThreads()
-    {
-        for(ClientHandler client : clients)
+
+    private void stopAllThreads(){
+        for(ClientHandler client: clients)
         {
             try {
                 client.getSocket().close();
@@ -390,211 +636,14 @@ public class ServerThread extends Thread{
             }
         }
     }
-
-    public ServerSocket getServerSocket() {
+    
+    public ServerSocket getServerSocket(){
         return serverSocket;
     }
     
-    private List<Korisnik> getAllUsers()
-    {
-        List<Korisnik> users = new ArrayList<>();
-        
-        for(ClientHandler client : clients)
-        {
-            users.add(client.getUser());
-        }
-        
-        return users;
-    }
 }
 
-//ServerForm
-package form;
 
-import common.Korisnik;
-import java.awt.event.ActionEvent;
-import java.io.IOException;
-import javax.swing.Timer;
-import javax.swing.table.DefaultTableModel;
-import logic.Controller;
-import threads.ServerThread;
-
-public class ServerForm extends javax.swing.JFrame {
-    
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(ServerForm.class.getName());
-
-    /**
-     * Creates new form ServerForm
-     */
-    private ServerThread serverThread;
-    public ServerForm() {
-        initComponents();
-        popuniTabelu();
-        pokreniAutoRefresh();
-    }
-
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
-    private void initComponents() {
-
-        btnPokreniServer = new javax.swing.JButton();
-        btnUgasiServer = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        btnPokreniServer.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
-        btnPokreniServer.setText("Pokreni Server");
-        btnPokreniServer.addActionListener(this::btnPokreniServerActionPerformed);
-
-        btnUgasiServer.setFont(new java.awt.Font("Segoe UI", 0, 24)); // NOI18N
-        btnUgasiServer.setText("Ugasi Server");
-        btnUgasiServer.setEnabled(false);
-        btnUgasiServer.addActionListener(this::btnUgasiServerActionPerformed);
-
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null}
-            },
-            new String [] {
-                "Username", "Status"
-            }
-        ) {
-            Class[] types = new Class [] {
-                java.lang.String.class, java.lang.String.class
-            };
-            boolean[] canEdit = new boolean [] {
-                false, false
-            };
-
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
-        jScrollPane1.setViewportView(jTable1);
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(38, 38, 38)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 958, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(btnPokreniServer)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btnUgasiServer)))
-                .addGap(67, 67, 67))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(42, 42, 42)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 37, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnPokreniServer)
-                    .addComponent(btnUgasiServer))
-                .addGap(79, 79, 79))
-        );
-
-        pack();
-    }// </editor-fold>                        
-    
-    private void pokreniAutoRefresh(){
-        Timer timer = new Timer(5000, (e) -> {
-           popuniTabelu();
-        });
-        
-        timer.setRepeats(true);
-        
-        timer.start();
-    }
-    
-    private void btnPokreniServerActionPerformed(java.awt.event.ActionEvent evt) {                                                 
-        if(serverThread == null || !serverThread.isAlive())
-        {
-            try {
-                serverThread = new ServerThread();
-                serverThread.start();
-                btnPokreniServer.setEnabled(false);
-                btnUgasiServer.setEnabled(true);
-                
-            } catch (IOException ex) {
-                System.getLogger(ServerForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-            }
-        }
-    }                                                
-
-    private void btnUgasiServerActionPerformed(java.awt.event.ActionEvent evt) {                                               
-        // TODO add your handling code here:
-        if(serverThread.getServerSocket() != null && serverThread.getServerSocket().isBound())
-        {
-            try {
-                serverThread.getServerSocket().close();
-                btnPokreniServer.setEnabled(true);
-                btnUgasiServer.setEnabled(false);
-                
-            } catch (IOException ex) {
-                System.getLogger(ServerForm.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-            }
-        }
-    }                                              
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new ServerForm().setVisible(true));
-    }
-
-    // Variables declaration - do not modify                     
-    private javax.swing.JButton btnPokreniServer;
-    private javax.swing.JButton btnUgasiServer;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable jTable1;
-    // End of variables declaration                   
-
-    private void popuniTabelu() {
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-        
-        for(Korisnik k: Controller.getInstance().getListaDozvoljenihKorisnika())
-        {
-            model.addRow(new Object[]{
-                k.getKorisnickoIme(),
-                k.getStatus()});
-        }
-    }
-}
     </pre>
 
     <!-- JavaScript -->
